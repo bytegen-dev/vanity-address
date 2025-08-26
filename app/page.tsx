@@ -1,25 +1,45 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   VanityAddressGenerator,
   VanityResult,
   VanityOptions,
 } from "../lib/vanity-generator";
+import { toast } from "react-toastify";
 
 export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<VanityResult[]>([]);
   const [currentAttempts, setCurrentAttempts] = useState(0);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [options, setOptions] = useState<VanityOptions>({
     startsWith: "",
     endsWith: "",
     contains: "",
-    maxAttempts: 1000000,
-    maxTime: 30000,
+    maxAttempts: 10000000, // Increased to 10 million attempts
+    maxTime: 300000, // Increased to 5 minutes (300 seconds)
+    caseSensitive: false, // Default to case insensitive
   });
 
   const generator = new VanityAddressGenerator();
+
+  // Timer effect for tracking elapsed time
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    if (isGenerating) {
+      interval = setInterval(() => {
+        setElapsedTime((prev) => prev + 1000); // Update every second
+      }, 1000);
+    } else {
+      setElapsedTime(0); // Reset when not generating
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isGenerating]);
 
   const handleGenerate = useCallback(async () => {
     if (isGenerating) return;
@@ -29,18 +49,34 @@ export default function Home() {
     setResults([]);
 
     try {
-      const result = await generator.generateVanityAddress(options);
+      const result = await generator.generateVanityAddress({
+        ...options,
+        onProgress: (attempts) => {
+          setCurrentAttempts(attempts);
+        },
+      });
 
       if (result) {
         setResults([result]);
+        toast.success("Vanity address generated successfully!", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       } else {
-        alert(
-          "Could not generate vanity address within the specified limits. Try adjusting your criteria or increasing the time/attempt limits."
+        toast.error(
+          "Could not generate vanity address within the specified limits. Try adjusting your criteria or increasing the time/attempt limits.",
+          {
+            position: "top-right",
+            autoClose: 5000,
+          }
         );
       }
     } catch (error) {
       console.error("Error generating vanity address:", error);
-      alert("An error occurred while generating the vanity address.");
+      toast.error("An error occurred while generating the vanity address.", {
+        position: "top-right",
+        autoClose: 5000,
+      });
     } finally {
       setIsGenerating(false);
       setCurrentAttempts(0);
@@ -54,20 +90,91 @@ export default function Home() {
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    alert("Copied to clipboard!");
+    toast.success("Copied to clipboard!", {
+      position: "top-right",
+      autoClose: 2000,
+    });
   };
 
   const estimateAttempts = () => {
-    const probability = generator.estimateProbability({
-      startsWith: options.startsWith,
-      endsWith: options.endsWith,
-      contains: options.contains,
-    });
     return generator.estimateExpectedAttempts({
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
+      caseSensitive: options.caseSensitive,
     });
+  };
+
+  const estimateTime = () => {
+    return generator.estimateExpectedTime({
+      startsWith: options.startsWith,
+      endsWith: options.endsWith,
+      contains: options.contains,
+      caseSensitive: options.caseSensitive,
+    });
+  };
+
+  const estimateProbability = () => {
+    return generator.estimateProbability({
+      startsWith: options.startsWith,
+      endsWith: options.endsWith,
+      contains: options.contains,
+      caseSensitive: options.caseSensitive,
+    });
+  };
+
+  const validateCriteria = () => {
+    const invalidChars = ["0", "O", "I", "l"];
+    const issues = [];
+
+    if (options.startsWith) {
+      const invalidStart = invalidChars.find((char) =>
+        options.startsWith?.includes(char)
+      );
+      if (invalidStart) {
+        issues.push(
+          `"Starts With" cannot contain: ${invalidStart} (not in Base58 alphabet)`
+        );
+      }
+    }
+
+    if (options.endsWith) {
+      const invalidEnd = invalidChars.find((char) =>
+        options.endsWith?.includes(char)
+      );
+      if (invalidEnd) {
+        issues.push(
+          `"Ends With" cannot contain: ${invalidEnd} (not in Base58 alphabet)`
+        );
+      }
+    }
+
+    if (options.contains) {
+      const invalidContain = invalidChars.find((char) =>
+        options.contains?.includes(char)
+      );
+      if (invalidContain) {
+        issues.push(
+          `"Contains" cannot contain: ${invalidContain} (not in Base58 alphabet)`
+        );
+      }
+    }
+
+    return issues;
+  };
+
+  const formatElapsedTime = (milliseconds: number) => {
+    const seconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    } else {
+      return `${seconds}s`;
+    }
   };
 
   return (
@@ -106,7 +213,8 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, startsWith: e.target.value })
                   }
-                  placeholder="e.g., ABC"
+                  placeholder="e.g., ABC (recommended 2-3 chars)"
+                  disabled={isGenerating}
                 />
               </div>
 
@@ -120,7 +228,8 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, endsWith: e.target.value })
                   }
-                  placeholder="e.g., XYZ"
+                  placeholder="e.g., XYZ (recommended 2-3 chars)"
+                  disabled={isGenerating}
                 />
               </div>
             </div>
@@ -135,7 +244,8 @@ export default function Home() {
                 onChange={(e) =>
                   setOptions({ ...options, contains: e.target.value })
                 }
-                placeholder="e.g., SOL"
+                placeholder="e.g., SOL (recommended 2-3 chars)"
+                disabled={isGenerating}
               />
             </div>
 
@@ -153,6 +263,7 @@ export default function Home() {
                       maxAttempts: parseInt(e.target.value) || 1000000,
                     })
                   }
+                  disabled={isGenerating}
                 />
               </div>
 
@@ -169,9 +280,75 @@ export default function Home() {
                       maxTime: (parseInt(e.target.value) || 30) * 1000,
                     })
                   }
+                  disabled={isGenerating}
                 />
               </div>
             </div>
+
+            {/* Case Sensitivity Option */}
+            <div className="mb-6">
+              <label className="flex items-center text-white cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.caseSensitive}
+                  onChange={(e) =>
+                    setOptions({ ...options, caseSensitive: e.target.checked })
+                  }
+                  disabled={isGenerating}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    accentColor: "#fff",
+                  }}
+                />
+                <span style={{ fontSize: "14px" }}>
+                  Case sensitive matching (unchecked = case insensitive)
+                </span>
+              </label>
+            </div>
+
+            {/* Validation Messages */}
+            {validateCriteria().length > 0 && (
+              <div
+                className="mb-6"
+                style={{
+                  padding: "16px",
+                  backgroundColor: "rgba(255, 0, 0, 0.1)",
+                  border: "1px solid rgba(255, 0, 0, 0.3)",
+                  borderRadius: "8px",
+                }}
+              >
+                <h3
+                  className="text-white mb-2"
+                  style={{ fontWeight: "600", color: "#ff6b6b" }}
+                >
+                  ⚠️ Invalid Characters
+                </h3>
+                {validateCriteria().map((issue, index) => (
+                  <p
+                    key={index}
+                    style={{
+                      color: "#ff6b6b",
+                      fontSize: "14px",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    {issue}
+                  </p>
+                ))}
+                <p
+                  style={{
+                    color: "#ff6b6b",
+                    fontSize: "12px",
+                    marginTop: "8px",
+                  }}
+                >
+                  Solana addresses use Base58 encoding which excludes: 0, O, I,
+                  l
+                </p>
+              </div>
+            )}
 
             {/* Probability Estimate */}
             <div
@@ -189,22 +366,26 @@ export default function Home() {
                 Expected attempts: {estimateAttempts().toLocaleString()}
               </p>
               <p className="text-white-80">
-                Probability:{" "}
-                {(
-                  generator.estimateProbability({
-                    startsWith: options.startsWith,
-                    endsWith: options.endsWith,
-                    contains: options.contains,
-                  }) * 100
-                ).toFixed(6)}
-                %
+                Probability: {(estimateProbability() * 100).toFixed(6)}%
+              </p>
+              <p className="text-white-80">
+                Estimated time: {generator.formatTimeDuration(estimateTime())}
               </p>
             </div>
 
             {/* Action Buttons */}
             <div className="flex">
               {!isGenerating ? (
-                <button onClick={handleGenerate} className="btn-primary">
+                <button
+                  onClick={handleGenerate}
+                  className="btn-primary"
+                  disabled={validateCriteria().length > 0}
+                  style={{
+                    opacity: validateCriteria().length > 0 ? 0.4 : 1,
+                    cursor:
+                      validateCriteria().length > 0 ? "not-allowed" : "pointer",
+                  }}
+                >
                   Generate Vanity Address
                 </button>
               ) : (
@@ -300,12 +481,24 @@ export default function Home() {
             <div className="card text-center">
               <div className="loading-spinner"></div>
               <p className="text-white">Generating vanity address...</p>
-              <p
-                className="text-white-80"
-                style={{ fontSize: "14px", marginTop: "8px" }}
-              >
-                This may take a while depending on your criteria
-              </p>
+              <div style={{ marginTop: "16px" }}>
+                <p
+                  className="text-white-80"
+                  style={{ fontSize: "14px", marginBottom: "8px" }}
+                >
+                  Time elapsed:{" "}
+                  <strong>{formatElapsedTime(elapsedTime)}</strong>
+                </p>
+                <p
+                  className="text-white-80"
+                  style={{ fontSize: "14px", marginBottom: "8px" }}
+                >
+                  Attempts: <strong>{currentAttempts.toLocaleString()}</strong>
+                </p>
+                <p className="text-white-80" style={{ fontSize: "14px" }}>
+                  This may take a while depending on your criteria
+                </p>
+              </div>
             </div>
           )}
         </div>
