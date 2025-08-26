@@ -232,7 +232,7 @@ export default function Home() {
                       <h3
                         style={{
                           fontWeight: "600",
-                          color: "#374151",
+                          color: "#fff",
                           marginBottom: "8px",
                         }}
                       >
@@ -253,7 +253,7 @@ export default function Home() {
                       <h3
                         style={{
                           fontWeight: "600",
-                          color: "#374151",
+                          color: "#fff",
                           marginBottom: "8px",
                         }}
                       >
@@ -278,7 +278,7 @@ export default function Home() {
                       gridTemplateColumns: "1fr 1fr",
                       gap: "16px",
                       fontSize: "14px",
-                      color: "#6b7280",
+                      color: "#00ff00",
                     }}
                   >
                     <div>
