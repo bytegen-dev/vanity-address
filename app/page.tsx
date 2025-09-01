@@ -7,6 +7,7 @@ import {
   VanityOptions,
 } from "../lib/vanity-generator";
 import { toast } from "react-toastify";
+import Aurora from "./Aurora";
 
 export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -179,6 +180,12 @@ export default function Home() {
 
   return (
     <div className="gradient-bg">
+      <Aurora
+        colorStops={["#5227FF", "#7cff67", "#5227FF"]}
+        amplitude={1.0}
+        blend={0.5}
+        processing={isGenerating}
+      />
       <div className="container">
         <div className="text-center mb-8">
           <h1

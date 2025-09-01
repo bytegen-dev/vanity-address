@@ -3,7 +3,6 @@ import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
-import Aurora from "./Aurora";
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
@@ -29,11 +28,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={jetbrainsMono.className}>
-        <Aurora
-          colorStops={["#5227FF", "#7cff67", "#5227FF"]}
-          amplitude={1.0}
-          blend={0.5}
-        />
         {children}
         <ToastContainer
           position="top-right"

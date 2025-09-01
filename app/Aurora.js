@@ -115,6 +115,7 @@ export default function Aurora(props) {
     colorStops = ["#5227FF", "#7cff67", "#5227FF"],
     amplitude = 1.0,
     blend = 0.5,
+    processing = false,
   } = props;
   const propsRef = useRef(props);
   propsRef.current = props;
@@ -203,5 +204,10 @@ export default function Aurora(props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amplitude]);
 
-  return <div ref={ctnDom} className="aurora-container" />;
+  return (
+    <div
+      ref={ctnDom}
+      className={`aurora-container ${processing ? "processing" : ""}`}
+    />
+  );
 }
