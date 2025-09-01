@@ -1,7 +1,9 @@
 # Solana Vanity Address Generator
 
-A modern web application for generating custom Solana addresses with specific patterns. Built with Next.js and TypeScript, this tool allows you to create vanity addresses that start with, end with, or contain specific characters.
+<img width="1106" height="935" alt="image" src="https://github.com/user-attachments/assets/a1dd07f4-1100-4cd5-86f3-14f91dbfa91d" />
 
+A modern web application for generating custom Solana addresses with specific patterns. Built with Next.js and TypeScript, this tool allows you to create vanity addresses that start with, end with, or contain specific characters.
+"used this tool to create <a href="https://www.sns.id/domain/bytegen" target="_blank">**bytegen.sol**</a> wallet address -> **BYTEjknDKYUxmteFND2K1abSBJj1Ke65MQnwwZHQUYQA**
 ## 🚀 Features
 
 - **Pattern Matching**: Generate addresses that start with, end with, or contain specific patterns
