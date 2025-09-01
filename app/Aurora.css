@@ -8,6 +8,12 @@
   min-width: 1000px;
   z-index: -1;
   pointer-events: none;
+  transition: all 0.3s ease;
+
+  &.processing {
+    opacity: 0;
+    visibility: hidden;
+  }
 }
 
 .aurora-container canvas {
