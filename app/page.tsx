@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   UnifiedVanityAddressGenerator,
@@ -11,7 +11,7 @@ import {
 import { toast } from "react-toastify";
 import Aurora from "./Aurora";
 
-export default function Home() {
+function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -694,5 +694,35 @@ export default function Home() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="gradient-bg">
+        <Aurora
+          colorStops={["#5227FF", "#7cff67", "#5227FF"]}
+          amplitude={1.0}
+          blend={0.5}
+          processing={true}
+        />
+        <div className="container">
+          <div className="text-center mb-8">
+            <h1
+              className="text-white mb-4"
+              style={{ fontSize: "2.5rem", fontWeight: "bold" }}
+            >
+              Vanity Address Generator
+            </h1>
+            <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
+              Loading...
+            </p>
+          </div>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
