@@ -78,8 +78,8 @@ export class EthereumVanityAddressGenerator {
         };
       }
 
-      // Progress callback and yield control
-      if (attempts % 1000 === 0) {
+      // Progress callback and yield control - frequent yielding for Ethereum
+      if (attempts % 10 === 0) {
         if (onProgress) {
           onProgress(attempts);
         }
@@ -105,27 +105,30 @@ export class EthereumVanityAddressGenerator {
     }
   ): boolean {
     const { startsWith, endsWith, contains, caseSensitive = false } = criteria;
+    
+    // For Ethereum addresses, remove the "0x" prefix for pattern matching
+    const addressWithoutPrefix = address.startsWith("0x") ? address.slice(2) : address;
 
     if (caseSensitive) {
       // Case sensitive matching
-      if (startsWith && !address.startsWith(startsWith)) {
+      if (startsWith && !addressWithoutPrefix.startsWith(startsWith)) {
         return false;
       }
-      if (endsWith && !address.endsWith(endsWith)) {
+      if (endsWith && !addressWithoutPrefix.endsWith(endsWith)) {
         return false;
       }
-      if (contains && !address.includes(contains)) {
+      if (contains && !addressWithoutPrefix.includes(contains)) {
         return false;
       }
     } else {
       // Case insensitive matching (default)
-      if (startsWith && !address.toLowerCase().startsWith(startsWith.toLowerCase())) {
+      if (startsWith && !addressWithoutPrefix.toLowerCase().startsWith(startsWith.toLowerCase())) {
         return false;
       }
-      if (endsWith && !address.toLowerCase().endsWith(endsWith.toLowerCase())) {
+      if (endsWith && !addressWithoutPrefix.toLowerCase().endsWith(endsWith.toLowerCase())) {
         return false;
       }
-      if (contains && !address.toLowerCase().includes(contains.toLowerCase())) {
+      if (contains && !addressWithoutPrefix.toLowerCase().includes(contains.toLowerCase())) {
         return false;
       }
     }
