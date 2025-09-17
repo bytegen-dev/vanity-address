@@ -14,12 +14,12 @@ import Aurora from "./Aurora";
 export default function Home() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<UnifiedVanityResult[]>([]);
   const [currentAttempts, setCurrentAttempts] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [addressType, setAddressType] = useState<AddressType>("solana");
+  const [addressType, setAddressType] = useState<AddressType | null>(null);
   const [options, setOptions] = useState<
     Omit<UnifiedVanityOptions, "addressType">
   >({
@@ -35,9 +35,12 @@ export default function Home() {
 
   // Initialize address type from URL parameter
   useEffect(() => {
-    const mode = searchParams.get('mode');
-    if (mode === 'evm' || mode === 'solana') {
+    const mode = searchParams.get("mode");
+    if (mode === "evm" || mode === "solana") {
       setAddressType(mode as AddressType);
+    } else {
+      // Default to solana if no mode specified
+      setAddressType("solana");
     }
   }, [searchParams]);
 
@@ -106,13 +109,16 @@ export default function Home() {
     setIsGenerating(false);
   }, []);
 
-  const handleAddressTypeChange = useCallback((newAddressType: AddressType) => {
-    setAddressType(newAddressType);
-    // Update URL parameter
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('mode', newAddressType);
-    router.push(`?${params.toString()}`, { scroll: false });
-  }, [searchParams, router]);
+  const handleAddressTypeChange = useCallback(
+    (newAddressType: AddressType) => {
+      setAddressType(newAddressType);
+      // Update URL parameter
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("mode", newAddressType);
+      router.push(`?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, router]
+  );
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -185,7 +191,7 @@ export default function Home() {
         }
         amplitude={1.0}
         blend={0.5}
-        processing={isGenerating}
+        processing={isGenerating || addressType === null}
       />
       <div className="container">
         <div className="text-center mb-8">
@@ -193,12 +199,16 @@ export default function Home() {
             className="text-white mb-4"
             style={{ fontSize: "2.5rem", fontWeight: "bold" }}
           >
-            {addressType === "solana" ? "Solana" : "EVM"} Vanity Address
-            Generator
+            {addressType === null 
+              ? "Vanity Address Generator" 
+              : `${addressType === "solana" ? "Solana" : "EVM"} Vanity Address Generator`
+            }
           </h1>
           <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
-            Generate custom {addressType === "solana" ? "Solana" : "EVM"}{" "}
-            addresses with specific patterns
+            {addressType === null 
+              ? "Generate custom addresses with specific patterns"
+              : `Generate custom ${addressType === "solana" ? "Solana" : "EVM"} addresses with specific patterns`
+            }
           </p>
         </div>
 
@@ -211,7 +221,13 @@ export default function Home() {
             >
               Address Type
             </h2>
-            <div className="flex gap-4">
+            {addressType === null ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="loading-spinner"></div>
+                <span className="text-white-80 ml-3">Loading...</span>
+              </div>
+            ) : (
+              <div className="flex gap-4">
               <label className="flex items-center text-white cursor-pointer">
                 <input
                   type="radio"
@@ -287,9 +303,11 @@ export default function Home() {
                 </p>
               </div>
             )}
+            )}
           </div>
 
           {/* Input Form */}
+          {addressType !== null && (
           <div className="card">
             <h2
               className="text-white mb-6"
@@ -630,6 +648,7 @@ export default function Home() {
                 </p>
               </div>
             </div>
+          )}
           )}
         </div>
       </div>
