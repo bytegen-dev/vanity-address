@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
 
-export interface EthereumVanityResult {
+export interface EVMVanityResult {
   address: string;
   privateKey: string;
   publicKey: string;
@@ -8,7 +8,7 @@ export interface EthereumVanityResult {
   timeElapsed: number;
 }
 
-export interface EthereumVanityOptions {
+export interface EVMVanityOptions {
   startsWith?: string;
   endsWith?: string;
   contains?: string;
@@ -18,7 +18,7 @@ export interface EthereumVanityOptions {
   onProgress?: (attempts: number) => void; // Callback for progress updates
 }
 
-export class EthereumVanityAddressGenerator {
+export class EVMVanityAddressGenerator {
   private shouldStop = false;
 
   stop() {
@@ -26,8 +26,8 @@ export class EthereumVanityAddressGenerator {
   }
 
   async generateVanityAddress(
-    options: EthereumVanityOptions = {}
-  ): Promise<EthereumVanityResult | null> {
+    options: EVMVanityOptions = {}
+  ): Promise<EVMVanityResult | null> {
     const {
       startsWith = "",
       endsWith = "",
@@ -47,16 +47,22 @@ export class EthereumVanityAddressGenerator {
       throw new Error("At least one criteria must be specified");
     }
 
-    // Validate hex characters for Ethereum addresses
+    // Validate hex characters for EVM addresses
     const hexPattern = /^[0-9a-fA-F]*$/;
     if (startsWith && !hexPattern.test(startsWith)) {
-      throw new Error("Starts with must contain only valid hex characters (0-9, a-f, A-F)");
+      throw new Error(
+        "Starts with must contain only valid hex characters (0-9, a-f, A-F)"
+      );
     }
     if (endsWith && !hexPattern.test(endsWith)) {
-      throw new Error("Ends with must contain only valid hex characters (0-9, a-f, A-F)");
+      throw new Error(
+        "Ends with must contain only valid hex characters (0-9, a-f, A-F)"
+      );
     }
     if (contains && !hexPattern.test(contains)) {
-      throw new Error("Contains must contain only valid hex characters (0-9, a-f, A-F)");
+      throw new Error(
+        "Contains must contain only valid hex characters (0-9, a-f, A-F)"
+      );
     }
 
     while (attempts < maxAttempts && !this.shouldStop) {
@@ -67,7 +73,14 @@ export class EthereumVanityAddressGenerator {
       const address = wallet.address;
 
       // Check if address matches criteria
-      if (this.matchesCriteria(address, { startsWith, endsWith, contains, caseSensitive })) {
+      if (
+        this.matchesCriteria(address, {
+          startsWith,
+          endsWith,
+          contains,
+          caseSensitive,
+        })
+      ) {
         const timeElapsed = Date.now() - startTime;
         return {
           address,
@@ -105,9 +118,11 @@ export class EthereumVanityAddressGenerator {
     }
   ): boolean {
     const { startsWith, endsWith, contains, caseSensitive = false } = criteria;
-    
-    // For Ethereum addresses, remove the "0x" prefix for pattern matching
-    const addressWithoutPrefix = address.startsWith("0x") ? address.slice(2) : address;
+
+    // For EVM addresses, remove the "0x" prefix for pattern matching
+    const addressWithoutPrefix = address.startsWith("0x")
+      ? address.slice(2)
+      : address;
 
     if (caseSensitive) {
       // Case sensitive matching
@@ -122,13 +137,22 @@ export class EthereumVanityAddressGenerator {
       }
     } else {
       // Case insensitive matching (default)
-      if (startsWith && !addressWithoutPrefix.toLowerCase().startsWith(startsWith.toLowerCase())) {
+      if (
+        startsWith &&
+        !addressWithoutPrefix.toLowerCase().startsWith(startsWith.toLowerCase())
+      ) {
         return false;
       }
-      if (endsWith && !addressWithoutPrefix.toLowerCase().endsWith(endsWith.toLowerCase())) {
+      if (
+        endsWith &&
+        !addressWithoutPrefix.toLowerCase().endsWith(endsWith.toLowerCase())
+      ) {
         return false;
       }
-      if (contains && !addressWithoutPrefix.toLowerCase().includes(contains.toLowerCase())) {
+      if (
+        contains &&
+        !addressWithoutPrefix.toLowerCase().includes(contains.toLowerCase())
+      ) {
         return false;
       }
     }
@@ -166,9 +190,10 @@ export class EthereumVanityAddressGenerator {
     if (contains) {
       // For contains, we need to consider all possible positions
       // This is a simplified calculation - in reality it's more complex
-      const addressLength = 40; // Ethereum addresses are 40 hex characters (excluding 0x)
+      const addressLength = 40; // EVM addresses are 40 hex characters (excluding 0x)
       const possiblePositions = addressLength - contains.length + 1;
-      probability *= Math.pow(1 / alphabetSize, contains.length) * possiblePositions;
+      probability *=
+        Math.pow(1 / alphabetSize, contains.length) * possiblePositions;
       if (!caseSensitive) {
         const caseVariations = Math.pow(2, contains.length);
         probability *= Math.min(caseVariations, alphabetSize);
@@ -202,7 +227,7 @@ export class EthereumVanityAddressGenerator {
 
   formatTimeDuration(milliseconds: number): string {
     if (milliseconds === Infinity) return "∞";
-    
+
     const seconds = Math.floor(milliseconds / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);

@@ -1,7 +1,7 @@
 import { VanityAddressGenerator, VanityResult, VanityOptions } from "./vanity-generator";
-import { EthereumVanityAddressGenerator, EthereumVanityResult, EthereumVanityOptions } from "./ethereum-vanity-generator";
+import { EVMVanityAddressGenerator, EVMVanityResult, EVMVanityOptions } from "./evm-vanity-generator";
 
-export type AddressType = "solana" | "ethereum";
+export type AddressType = "solana" | "evm";
 
 export interface UnifiedVanityResult {
   addressType: AddressType;
@@ -25,7 +25,7 @@ export interface UnifiedVanityOptions {
 
 export class UnifiedVanityAddressGenerator {
   private solanaGenerator = new VanityAddressGenerator();
-  private ethereumGenerator = new EthereumVanityAddressGenerator();
+  private evmGenerator = new EVMVanityAddressGenerator();
 
   async generateVanityAddress(
     options: UnifiedVanityOptions
@@ -44,12 +44,12 @@ export class UnifiedVanityAddressGenerator {
         attempts: result.attempts,
         timeElapsed: result.timeElapsed,
       };
-    } else if (addressType === "ethereum") {
-      const result = await this.ethereumGenerator.generateVanityAddress(baseOptions as EthereumVanityOptions);
+    } else if (addressType === "evm") {
+      const result = await this.evmGenerator.generateVanityAddress(baseOptions as EVMVanityOptions);
       if (!result) return null;
       
       return {
-        addressType: "ethereum",
+        addressType: "evm",
         address: result.address,
         privateKey: result.privateKey,
         publicKey: result.publicKey,
@@ -63,7 +63,7 @@ export class UnifiedVanityAddressGenerator {
 
   stop() {
     this.solanaGenerator.stop();
-    this.ethereumGenerator.stop();
+    this.evmGenerator.stop();
   }
 
   estimateExpectedAttempts(options: Omit<UnifiedVanityOptions, 'onProgress'>): number {
@@ -71,8 +71,8 @@ export class UnifiedVanityAddressGenerator {
 
     if (addressType === "solana") {
       return this.solanaGenerator.estimateExpectedAttempts(baseOptions);
-    } else if (addressType === "ethereum") {
-      return this.ethereumGenerator.estimateExpectedAttempts(baseOptions);
+    } else if (addressType === "evm") {
+      return this.evmGenerator.estimateExpectedAttempts(baseOptions);
     }
 
     throw new Error(`Unsupported address type: ${addressType}`);
@@ -83,8 +83,8 @@ export class UnifiedVanityAddressGenerator {
 
     if (addressType === "solana") {
       return this.solanaGenerator.estimateExpectedTime(baseOptions);
-    } else if (addressType === "ethereum") {
-      return this.ethereumGenerator.estimateExpectedTime(baseOptions);
+    } else if (addressType === "evm") {
+      return this.evmGenerator.estimateExpectedTime(baseOptions);
     }
 
     throw new Error(`Unsupported address type: ${addressType}`);
@@ -95,8 +95,8 @@ export class UnifiedVanityAddressGenerator {
 
     if (addressType === "solana") {
       return this.solanaGenerator.estimateProbability(baseOptions);
-    } else if (addressType === "ethereum") {
-      return this.ethereumGenerator.estimateProbability(baseOptions);
+    } else if (addressType === "evm") {
+      return this.evmGenerator.estimateProbability(baseOptions);
     }
 
     throw new Error(`Unsupported address type: ${addressType}`);
@@ -147,8 +147,8 @@ export class UnifiedVanityAddressGenerator {
           issues.push(`"Contains" cannot contain: ${invalidContain} (not in Base58 alphabet)`);
         }
       }
-    } else if (addressType === "ethereum") {
-      // Ethereum uses hex - only 0-9, a-f, A-F
+    } else if (addressType === "evm") {
+      // EVM uses hex - only 0-9, a-f, A-F
       const hexPattern = /^[0-9a-fA-F]*$/;
       
       if (startsWith && !hexPattern.test(startsWith)) {

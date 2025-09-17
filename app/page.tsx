@@ -16,7 +16,9 @@ export default function Home() {
   const [currentAttempts, setCurrentAttempts] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [addressType, setAddressType] = useState<AddressType>("solana");
-  const [options, setOptions] = useState<Omit<UnifiedVanityOptions, 'addressType'>>({
+  const [options, setOptions] = useState<
+    Omit<UnifiedVanityOptions, "addressType">
+  >({
     startsWith: "",
     endsWith: "",
     contains: "",
@@ -167,10 +169,12 @@ export default function Home() {
             className="text-white mb-4"
             style={{ fontSize: "2.5rem", fontWeight: "bold" }}
           >
-            {addressType === "solana" ? "Solana" : "Ethereum"} Vanity Address Generator
+            {addressType === "solana" ? "Solana" : "EVM"} Vanity Address
+            Generator
           </h1>
           <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
-            Generate custom {addressType === "solana" ? "Solana" : "Ethereum"} addresses with specific patterns
+            Generate custom {addressType === "solana" ? "Solana" : "EVM"}{" "}
+            addresses with specific patterns
           </p>
         </div>
 
@@ -190,7 +194,9 @@ export default function Home() {
                   name="addressType"
                   value="solana"
                   checked={addressType === "solana"}
-                  onChange={(e) => setAddressType(e.target.value as AddressType)}
+                  onChange={(e) =>
+                    setAddressType(e.target.value as AddressType)
+                  }
                   disabled={isGenerating}
                   style={{
                     marginRight: "8px",
@@ -205,9 +211,11 @@ export default function Home() {
                 <input
                   type="radio"
                   name="addressType"
-                  value="ethereum"
-                  checked={addressType === "ethereum"}
-                  onChange={(e) => setAddressType(e.target.value as AddressType)}
+                  value="evm"
+                  checked={addressType === "evm"}
+                  onChange={(e) =>
+                    setAddressType(e.target.value as AddressType)
+                  }
                   disabled={isGenerating}
                   style={{
                     marginRight: "8px",
@@ -216,14 +224,13 @@ export default function Home() {
                     accentColor: "#fff",
                   }}
                 />
-                <span style={{ fontSize: "16px" }}>Ethereum (Hex)</span>
+                <span style={{ fontSize: "16px" }}>EVM (Hex)</span>
               </label>
             </div>
             <p className="text-white-80 mt-2" style={{ fontSize: "14px" }}>
-              {addressType === "solana" 
+              {addressType === "solana"
                 ? "Uses Base58 encoding. Cannot contain: 0, O, I, l"
-                : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed"
-              }
+                : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed. Note: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
             </p>
           </div>
 
@@ -247,7 +254,11 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, startsWith: e.target.value })
                   }
-                  placeholder={addressType === "solana" ? "e.g., ABC (recommended 2-3 chars)" : "e.g., 0x123 (recommended 2-3 chars)"}
+                  placeholder={
+                    addressType === "solana"
+                      ? "e.g., ABC (recommended 2-3 chars)"
+                      : "e.g., 123 (will find 0x123...)"
+                  }
                   disabled={isGenerating}
                 />
               </div>
@@ -262,7 +273,11 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, endsWith: e.target.value })
                   }
-                  placeholder={addressType === "solana" ? "e.g., XYZ (recommended 2-3 chars)" : "e.g., 0x456 (recommended 2-3 chars)"}
+                  placeholder={
+                    addressType === "solana"
+                      ? "e.g., XYZ (recommended 2-3 chars)"
+                      : "e.g., 456 (will find ...456)"
+                  }
                   disabled={isGenerating}
                 />
               </div>
@@ -278,7 +293,11 @@ export default function Home() {
                 onChange={(e) =>
                   setOptions({ ...options, contains: e.target.value })
                 }
-                placeholder={addressType === "solana" ? "e.g., SOL (recommended 2-3 chars)" : "e.g., 0x789 (recommended 2-3 chars)"}
+                placeholder={
+                  addressType === "solana"
+                    ? "e.g., SOL (recommended 2-3 chars)"
+                    : "e.g., 789 (will find ...789...)"
+                }
                 disabled={isGenerating}
               />
             </div>
@@ -378,10 +397,9 @@ export default function Home() {
                     marginTop: "8px",
                   }}
                 >
-                  {addressType === "solana" 
+                  {addressType === "solana"
                     ? "Solana addresses use Base58 encoding which excludes: 0, O, I, l"
-                    : "Ethereum addresses use hexadecimal encoding: 0-9, a-f, A-F"
-                  }
+                    : "EVM addresses use hexadecimal encoding: 0-9, a-f, A-F. Remember: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
                 </p>
               </div>
             )}
@@ -453,12 +471,24 @@ export default function Home() {
                           marginBottom: "8px",
                         }}
                       >
-                        {result.addressType === "solana" ? "Public Key" : "Address"}
+                        {result.addressType === "solana"
+                          ? "Public Key"
+                          : "Address"}
                       </h3>
                       <div className="flex items-center gap-2">
-                        <code>{result.addressType === "solana" ? result.publicKey : result.address}</code>
+                        <code>
+                          {result.addressType === "solana"
+                            ? result.publicKey
+                            : result.address}
+                        </code>
                         <button
-                          onClick={() => copyToClipboard(result.addressType === "solana" ? result.publicKey : result.address)}
+                          onClick={() =>
+                            copyToClipboard(
+                              result.addressType === "solana"
+                                ? result.publicKey
+                                : result.address
+                            )
+                          }
                           className="btn-copy"
                         >
                           Copy
