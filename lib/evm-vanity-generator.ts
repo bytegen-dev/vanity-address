@@ -65,42 +65,40 @@ export class EVMVanityAddressGenerator {
 
     const startTime = Date.now();
     let attempts = 0;
-    const BATCH_SIZE = 100; // Process 100 wallets per batch
 
     while (attempts < maxAttempts && !this.shouldStop) {
-      // Process a batch of wallets
-      for (let i = 0; i < BATCH_SIZE; i++) {
-        attempts++;
+      // Generate single wallet and check
+      attempts++;
 
-        // Generate random wallet
-        const wallet = ethers.Wallet.createRandom();
-        const address = wallet.address;
+      // Generate random wallet
+      const wallet = ethers.Wallet.createRandom();
+      const address = wallet.address;
 
-        // Check if address matches criteria
-        if (this.matchesCriteria(address, { startsWith, endsWith, contains, caseSensitive })) {
-          const timeElapsed = Date.now() - startTime;
-          return {
-            address,
-            privateKey: wallet.privateKey,
-            publicKey: wallet.publicKey,
-            attempts,
-            timeElapsed,
-          };
-        }
-
-        // Check timeout
-        if (Date.now() - startTime > maxTime) {
-          break;
-        }
+      // Check if address matches criteria
+      if (this.matchesCriteria(address, { startsWith, endsWith, contains, caseSensitive })) {
+        const timeElapsed = Date.now() - startTime;
+        return {
+          address,
+          privateKey: wallet.privateKey,
+          publicKey: wallet.publicKey,
+          attempts,
+          timeElapsed,
+        };
       }
 
-      // Progress callback and yield control after each batch
-      if (onProgress) {
-        onProgress(attempts);
+      // Check timeout
+      if (Date.now() - startTime > maxTime) {
+        break;
       }
-      
-      // Yield control to prevent blocking
-      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      // Progress callback and yield control after every attempt
+      if (attempts % 5 === 0) {
+        if (onProgress) {
+          onProgress(attempts);
+        }
+        // Yield control to prevent UI blocking
+        await new Promise((resolve) => setTimeout(resolve, 1));
+      }
     }
 
     return null;
