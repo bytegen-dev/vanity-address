@@ -1,4 +1,5 @@
 import { ethers } from "ethers";
+import { EVMWorkerManager } from "./evm-worker-manager";
 
 export interface EVMVanityResult {
   address: string;
@@ -20,9 +21,11 @@ export interface EVMVanityOptions {
 
 export class EVMVanityAddressGenerator {
   private shouldStop = false;
+  private workerManager = new EVMWorkerManager();
 
   stop() {
     this.shouldStop = true;
+    this.workerManager.stop();
   }
 
   async generateVanityAddress(
@@ -39,8 +42,6 @@ export class EVMVanityAddressGenerator {
     } = options;
 
     this.shouldStop = false;
-    const startTime = Date.now();
-    let attempts = 0;
 
     // Validate criteria
     if (!startsWith && !endsWith && !contains) {
@@ -65,47 +66,22 @@ export class EVMVanityAddressGenerator {
       );
     }
 
-    while (attempts < maxAttempts && !this.shouldStop) {
-      attempts++;
+    // Use Web Worker for generation
+    try {
+      const result = await this.workerManager.generateVanityAddress({
+        startsWith,
+        endsWith,
+        contains,
+        maxAttempts,
+        maxTime,
+        caseSensitive,
+        onProgress,
+      });
 
-      // Generate random wallet
-      const wallet = ethers.Wallet.createRandom();
-      const address = wallet.address;
-
-      // Check if address matches criteria
-      if (
-        this.matchesCriteria(address, {
-          startsWith,
-          endsWith,
-          contains,
-          caseSensitive,
-        })
-      ) {
-        const timeElapsed = Date.now() - startTime;
-        return {
-          address,
-          privateKey: wallet.privateKey,
-          publicKey: wallet.publicKey,
-          attempts,
-          timeElapsed,
-        };
-      }
-
-      // Progress callback and yield control - frequent yielding for Ethereum
-      if (attempts % 10 === 0) {
-        if (onProgress) {
-          onProgress(attempts);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      }
-
-      // Check timeout
-      if (Date.now() - startTime > maxTime) {
-        break;
-      }
+      return result;
+    } catch (error) {
+      throw error;
     }
-
-    return null;
   }
 
   private matchesCriteria(
