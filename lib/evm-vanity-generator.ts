@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-import { EVMWorkerManager } from "./evm-worker-manager";
 
 export interface EVMVanityResult {
   address: string;
@@ -21,11 +20,9 @@ export interface EVMVanityOptions {
 
 export class EVMVanityAddressGenerator {
   private shouldStop = false;
-  private workerManager = new EVMWorkerManager();
 
   stop() {
     this.shouldStop = true;
-    this.workerManager.stop();
   }
 
   async generateVanityAddress(
@@ -66,22 +63,47 @@ export class EVMVanityAddressGenerator {
       );
     }
 
-    // Use Web Worker for generation
-    try {
-      const result = await this.workerManager.generateVanityAddress({
-        startsWith,
-        endsWith,
-        contains,
-        maxAttempts,
-        maxTime,
-        caseSensitive,
-        onProgress,
-      });
+    const startTime = Date.now();
+    let attempts = 0;
+    const BATCH_SIZE = 100; // Process 100 wallets per batch
 
-      return result;
-    } catch (error) {
-      throw error;
+    while (attempts < maxAttempts && !this.shouldStop) {
+      // Process a batch of wallets
+      for (let i = 0; i < BATCH_SIZE; i++) {
+        attempts++;
+
+        // Generate random wallet
+        const wallet = ethers.Wallet.createRandom();
+        const address = wallet.address;
+
+        // Check if address matches criteria
+        if (this.matchesCriteria(address, { startsWith, endsWith, contains, caseSensitive })) {
+          const timeElapsed = Date.now() - startTime;
+          return {
+            address,
+            privateKey: wallet.privateKey,
+            publicKey: wallet.publicKey,
+            attempts,
+            timeElapsed,
+          };
+        }
+
+        // Check timeout
+        if (Date.now() - startTime > maxTime) {
+          break;
+        }
+      }
+
+      // Progress callback and yield control after each batch
+      if (onProgress) {
+        onProgress(attempts);
+      }
+      
+      // Yield control to prevent blocking
+      await new Promise((resolve) => setTimeout(resolve, 0));
     }
+
+    return null;
   }
 
   private matchesCriteria(
