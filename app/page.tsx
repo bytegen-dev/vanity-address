@@ -2,19 +2,23 @@
 
 import { useState, useCallback, useEffect } from "react";
 import {
-  VanityAddressGenerator,
-  VanityResult,
-  VanityOptions,
-} from "../lib/vanity-generator";
+  UnifiedVanityAddressGenerator,
+  UnifiedVanityResult,
+  UnifiedVanityOptions,
+  AddressType,
+} from "../lib/unified-vanity-generator";
 import { toast } from "react-toastify";
 import Aurora from "./Aurora";
 
 export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [results, setResults] = useState<VanityResult[]>([]);
+  const [results, setResults] = useState<UnifiedVanityResult[]>([]);
   const [currentAttempts, setCurrentAttempts] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [options, setOptions] = useState<VanityOptions>({
+  const [addressType, setAddressType] = useState<AddressType>("solana");
+  const [options, setOptions] = useState<
+    Omit<UnifiedVanityOptions, "addressType">
+  >({
     startsWith: "",
     endsWith: "",
     contains: "",
@@ -23,7 +27,7 @@ export default function Home() {
     caseSensitive: false, // Default to case insensitive
   });
 
-  const generator = new VanityAddressGenerator();
+  const generator = new UnifiedVanityAddressGenerator();
 
   // Timer effect for tracking elapsed time
   useEffect(() => {
@@ -51,6 +55,7 @@ export default function Home() {
 
     try {
       const result = await generator.generateVanityAddress({
+        addressType,
         ...options,
         onProgress: (attempts) => {
           setCurrentAttempts(attempts);
@@ -82,7 +87,7 @@ export default function Home() {
       setIsGenerating(false);
       setCurrentAttempts(0);
     }
-  }, [options, isGenerating]);
+  }, [addressType, options, isGenerating]);
 
   const handleStop = useCallback(() => {
     generator.stop();
@@ -99,6 +104,7 @@ export default function Home() {
 
   const estimateAttempts = () => {
     return generator.estimateExpectedAttempts({
+      addressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -108,6 +114,7 @@ export default function Home() {
 
   const estimateTime = () => {
     return generator.estimateExpectedTime({
+      addressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -117,6 +124,7 @@ export default function Home() {
 
   const estimateProbability = () => {
     return generator.estimateProbability({
+      addressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -125,43 +133,12 @@ export default function Home() {
   };
 
   const validateCriteria = () => {
-    const invalidChars = ["0", "O", "I", "l"];
-    const issues = [];
-
-    if (options.startsWith) {
-      const invalidStart = invalidChars.find((char) =>
-        options.startsWith?.includes(char)
-      );
-      if (invalidStart) {
-        issues.push(
-          `"Starts With" cannot contain: ${invalidStart} (not in Base58 alphabet)`
-        );
-      }
-    }
-
-    if (options.endsWith) {
-      const invalidEnd = invalidChars.find((char) =>
-        options.endsWith?.includes(char)
-      );
-      if (invalidEnd) {
-        issues.push(
-          `"Ends With" cannot contain: ${invalidEnd} (not in Base58 alphabet)`
-        );
-      }
-    }
-
-    if (options.contains) {
-      const invalidContain = invalidChars.find((char) =>
-        options.contains?.includes(char)
-      );
-      if (invalidContain) {
-        issues.push(
-          `"Contains" cannot contain: ${invalidContain} (not in Base58 alphabet)`
-        );
-      }
-    }
-
-    return issues;
+    return generator.validateCriteria({
+      addressType,
+      startsWith: options.startsWith,
+      endsWith: options.endsWith,
+      contains: options.contains,
+    });
   };
 
   const formatElapsedTime = (milliseconds: number) => {
@@ -181,7 +158,11 @@ export default function Home() {
   return (
     <div className="gradient-bg">
       <Aurora
-        colorStops={["#5227FF", "#7cff67", "#5227FF"]}
+        colorStops={
+          addressType === "evm"
+            ? ["#ff4444", "#ff6b6b", "#ff4444"]
+            : ["#5227FF", "#7cff67", "#5227FF"]
+        }
         amplitude={1.0}
         blend={0.5}
         processing={isGenerating}
@@ -192,14 +173,102 @@ export default function Home() {
             className="text-white mb-4"
             style={{ fontSize: "2.5rem", fontWeight: "bold" }}
           >
-            Solana Vanity Address Generator
+            {addressType === "solana" ? "Solana" : "EVM"} Vanity Address
+            Generator
           </h1>
           <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
-            Generate custom Solana addresses with specific patterns
+            Generate custom {addressType === "solana" ? "Solana" : "EVM"}{" "}
+            addresses with specific patterns
           </p>
         </div>
 
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+          {/* Address Type Selector */}
+          <div className="card mb-6">
+            <h2
+              className="text-white mb-4"
+              style={{ fontSize: "1.5rem", fontWeight: "600" }}
+            >
+              Address Type
+            </h2>
+            <div className="flex gap-4">
+              <label className="flex items-center text-white cursor-pointer">
+                <input
+                  type="radio"
+                  name="addressType"
+                  value="solana"
+                  checked={addressType === "solana"}
+                  onChange={(e) =>
+                    setAddressType(e.target.value as AddressType)
+                  }
+                  disabled={isGenerating}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    accentColor: "#fff",
+                  }}
+                />
+                <span style={{ fontSize: "16px" }}>Solana (Base58)</span>
+              </label>
+              <label className="flex items-center text-white cursor-pointer">
+                <input
+                  type="radio"
+                  name="addressType"
+                  value="evm"
+                  checked={addressType === "evm"}
+                  onChange={(e) =>
+                    setAddressType(e.target.value as AddressType)
+                  }
+                  disabled={isGenerating}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    accentColor: "#fff",
+                  }}
+                />
+                <span style={{ fontSize: "16px" }}>EVM (Hex)</span>
+              </label>
+            </div>
+            <p className="text-white-80 mt-2" style={{ fontSize: "14px" }}>
+              {addressType === "solana"
+                ? "Uses Base58 encoding. Cannot contain: 0, O, I, l"
+                : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed. Note: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
+            </p>
+            {addressType === "evm" && (
+              <div
+                className="mt-3"
+                style={{
+                  padding: "12px",
+                  backgroundColor: "rgba(255, 165, 0, 0.1)",
+                  border: "1px solid rgba(255, 165, 0, 0.3)",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <span style={{ marginRight: "8px", fontSize: "16px" }}>
+                    ⚠️
+                  </span>
+                  <strong style={{ color: "#ffa500" }}>
+                    Experimental Mode
+                  </strong>
+                </div>
+                <p style={{ color: "#ffa500", margin: "0", fontSize: "13px" }}>
+                  EVM generation is currently experimental and may be slower
+                  than expected. We're working on performance optimizations.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Input Form */}
           <div className="card">
             <h2
@@ -220,7 +289,11 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, startsWith: e.target.value })
                   }
-                  placeholder="e.g., ABC (recommended 2-3 chars)"
+                  placeholder={
+                    addressType === "solana"
+                      ? "e.g., ABC (recommended 2-3 chars)"
+                      : "e.g., 123 (will find 0x123...)"
+                  }
                   disabled={isGenerating}
                 />
               </div>
@@ -235,7 +308,11 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, endsWith: e.target.value })
                   }
-                  placeholder="e.g., XYZ (recommended 2-3 chars)"
+                  placeholder={
+                    addressType === "solana"
+                      ? "e.g., XYZ (recommended 2-3 chars)"
+                      : "e.g., 456 (will find ...456)"
+                  }
                   disabled={isGenerating}
                 />
               </div>
@@ -251,7 +328,11 @@ export default function Home() {
                 onChange={(e) =>
                   setOptions({ ...options, contains: e.target.value })
                 }
-                placeholder="e.g., SOL (recommended 2-3 chars)"
+                placeholder={
+                  addressType === "solana"
+                    ? "e.g., SOL (recommended 2-3 chars)"
+                    : "e.g., 789 (will find ...789...)"
+                }
                 disabled={isGenerating}
               />
             </div>
@@ -351,8 +432,9 @@ export default function Home() {
                     marginTop: "8px",
                   }}
                 >
-                  Solana addresses use Base58 encoding which excludes: 0, O, I,
-                  l
+                  {addressType === "solana"
+                    ? "Solana addresses use Base58 encoding which excludes: 0, O, I, l"
+                    : "EVM addresses use hexadecimal encoding: 0-9, a-f, A-F. Remember: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
                 </p>
               </div>
             )}
@@ -378,6 +460,15 @@ export default function Home() {
               <p className="text-white-80">
                 Estimated time: {generator.formatTimeDuration(estimateTime())}
               </p>
+              {addressType === "evm" && (
+                <p
+                  className="text-orange-400"
+                  style={{ fontSize: "13px", marginTop: "8px" }}
+                >
+                  ⚠️ Actual EVM generation time may be longer due to
+                  experimental optimizations
+                </p>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -424,12 +515,24 @@ export default function Home() {
                           marginBottom: "8px",
                         }}
                       >
-                        Public Key
+                        {result.addressType === "solana"
+                          ? "Public Key"
+                          : "Address"}
                       </h3>
                       <div className="flex items-center gap-2">
-                        <code>{result.publicKey}</code>
+                        <code>
+                          {result.addressType === "solana"
+                            ? result.publicKey
+                            : result.address}
+                        </code>
                         <button
-                          onClick={() => copyToClipboard(result.publicKey)}
+                          onClick={() =>
+                            copyToClipboard(
+                              result.addressType === "solana"
+                                ? result.publicKey
+                                : result.address
+                            )
+                          }
                           className="btn-copy"
                         >
                           Copy
