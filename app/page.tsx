@@ -2,19 +2,21 @@
 
 import { useState, useCallback, useEffect } from "react";
 import {
-  VanityAddressGenerator,
-  VanityResult,
-  VanityOptions,
-} from "../lib/vanity-generator";
+  UnifiedVanityAddressGenerator,
+  UnifiedVanityResult,
+  UnifiedVanityOptions,
+  AddressType,
+} from "../lib/unified-vanity-generator";
 import { toast } from "react-toastify";
 import Aurora from "./Aurora";
 
 export default function Home() {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [results, setResults] = useState<VanityResult[]>([]);
+  const [results, setResults] = useState<UnifiedVanityResult[]>([]);
   const [currentAttempts, setCurrentAttempts] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [options, setOptions] = useState<VanityOptions>({
+  const [addressType, setAddressType] = useState<AddressType>("solana");
+  const [options, setOptions] = useState<Omit<UnifiedVanityOptions, 'addressType'>>({
     startsWith: "",
     endsWith: "",
     contains: "",
@@ -23,7 +25,7 @@ export default function Home() {
     caseSensitive: false, // Default to case insensitive
   });
 
-  const generator = new VanityAddressGenerator();
+  const generator = new UnifiedVanityAddressGenerator();
 
   // Timer effect for tracking elapsed time
   useEffect(() => {
@@ -51,6 +53,7 @@ export default function Home() {
 
     try {
       const result = await generator.generateVanityAddress({
+        addressType,
         ...options,
         onProgress: (attempts) => {
           setCurrentAttempts(attempts);
@@ -82,7 +85,7 @@ export default function Home() {
       setIsGenerating(false);
       setCurrentAttempts(0);
     }
-  }, [options, isGenerating]);
+  }, [addressType, options, isGenerating]);
 
   const handleStop = useCallback(() => {
     generator.stop();
@@ -99,6 +102,7 @@ export default function Home() {
 
   const estimateAttempts = () => {
     return generator.estimateExpectedAttempts({
+      addressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -108,6 +112,7 @@ export default function Home() {
 
   const estimateTime = () => {
     return generator.estimateExpectedTime({
+      addressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -117,6 +122,7 @@ export default function Home() {
 
   const estimateProbability = () => {
     return generator.estimateProbability({
+      addressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -125,43 +131,12 @@ export default function Home() {
   };
 
   const validateCriteria = () => {
-    const invalidChars = ["0", "O", "I", "l"];
-    const issues = [];
-
-    if (options.startsWith) {
-      const invalidStart = invalidChars.find((char) =>
-        options.startsWith?.includes(char)
-      );
-      if (invalidStart) {
-        issues.push(
-          `"Starts With" cannot contain: ${invalidStart} (not in Base58 alphabet)`
-        );
-      }
-    }
-
-    if (options.endsWith) {
-      const invalidEnd = invalidChars.find((char) =>
-        options.endsWith?.includes(char)
-      );
-      if (invalidEnd) {
-        issues.push(
-          `"Ends With" cannot contain: ${invalidEnd} (not in Base58 alphabet)`
-        );
-      }
-    }
-
-    if (options.contains) {
-      const invalidContain = invalidChars.find((char) =>
-        options.contains?.includes(char)
-      );
-      if (invalidContain) {
-        issues.push(
-          `"Contains" cannot contain: ${invalidContain} (not in Base58 alphabet)`
-        );
-      }
-    }
-
-    return issues;
+    return generator.validateCriteria({
+      addressType,
+      startsWith: options.startsWith,
+      endsWith: options.endsWith,
+      contains: options.contains,
+    });
   };
 
   const formatElapsedTime = (milliseconds: number) => {
@@ -192,14 +167,66 @@ export default function Home() {
             className="text-white mb-4"
             style={{ fontSize: "2.5rem", fontWeight: "bold" }}
           >
-            Solana Vanity Address Generator
+            {addressType === "solana" ? "Solana" : "Ethereum"} Vanity Address Generator
           </h1>
           <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
-            Generate custom Solana addresses with specific patterns
+            Generate custom {addressType === "solana" ? "Solana" : "Ethereum"} addresses with specific patterns
           </p>
         </div>
 
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+          {/* Address Type Selector */}
+          <div className="card mb-6">
+            <h2
+              className="text-white mb-4"
+              style={{ fontSize: "1.5rem", fontWeight: "600" }}
+            >
+              Address Type
+            </h2>
+            <div className="flex gap-4">
+              <label className="flex items-center text-white cursor-pointer">
+                <input
+                  type="radio"
+                  name="addressType"
+                  value="solana"
+                  checked={addressType === "solana"}
+                  onChange={(e) => setAddressType(e.target.value as AddressType)}
+                  disabled={isGenerating}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    accentColor: "#fff",
+                  }}
+                />
+                <span style={{ fontSize: "16px" }}>Solana (Base58)</span>
+              </label>
+              <label className="flex items-center text-white cursor-pointer">
+                <input
+                  type="radio"
+                  name="addressType"
+                  value="ethereum"
+                  checked={addressType === "ethereum"}
+                  onChange={(e) => setAddressType(e.target.value as AddressType)}
+                  disabled={isGenerating}
+                  style={{
+                    marginRight: "8px",
+                    width: "16px",
+                    height: "16px",
+                    accentColor: "#fff",
+                  }}
+                />
+                <span style={{ fontSize: "16px" }}>Ethereum (Hex)</span>
+              </label>
+            </div>
+            <p className="text-white-80 mt-2" style={{ fontSize: "14px" }}>
+              {addressType === "solana" 
+                ? "Uses Base58 encoding. Cannot contain: 0, O, I, l"
+                : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed"
+              }
+            </p>
+          </div>
+
           {/* Input Form */}
           <div className="card">
             <h2
@@ -220,7 +247,7 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, startsWith: e.target.value })
                   }
-                  placeholder="e.g., ABC (recommended 2-3 chars)"
+                  placeholder={addressType === "solana" ? "e.g., ABC (recommended 2-3 chars)" : "e.g., 0x123 (recommended 2-3 chars)"}
                   disabled={isGenerating}
                 />
               </div>
@@ -235,7 +262,7 @@ export default function Home() {
                   onChange={(e) =>
                     setOptions({ ...options, endsWith: e.target.value })
                   }
-                  placeholder="e.g., XYZ (recommended 2-3 chars)"
+                  placeholder={addressType === "solana" ? "e.g., XYZ (recommended 2-3 chars)" : "e.g., 0x456 (recommended 2-3 chars)"}
                   disabled={isGenerating}
                 />
               </div>
@@ -251,7 +278,7 @@ export default function Home() {
                 onChange={(e) =>
                   setOptions({ ...options, contains: e.target.value })
                 }
-                placeholder="e.g., SOL (recommended 2-3 chars)"
+                placeholder={addressType === "solana" ? "e.g., SOL (recommended 2-3 chars)" : "e.g., 0x789 (recommended 2-3 chars)"}
                 disabled={isGenerating}
               />
             </div>
@@ -351,8 +378,10 @@ export default function Home() {
                     marginTop: "8px",
                   }}
                 >
-                  Solana addresses use Base58 encoding which excludes: 0, O, I,
-                  l
+                  {addressType === "solana" 
+                    ? "Solana addresses use Base58 encoding which excludes: 0, O, I, l"
+                    : "Ethereum addresses use hexadecimal encoding: 0-9, a-f, A-F"
+                  }
                 </p>
               </div>
             )}
@@ -424,12 +453,12 @@ export default function Home() {
                           marginBottom: "8px",
                         }}
                       >
-                        Public Key
+                        {result.addressType === "solana" ? "Public Key" : "Address"}
                       </h3>
                       <div className="flex items-center gap-2">
-                        <code>{result.publicKey}</code>
+                        <code>{result.addressType === "solana" ? result.publicKey : result.address}</code>
                         <button
-                          onClick={() => copyToClipboard(result.publicKey)}
+                          onClick={() => copyToClipboard(result.addressType === "solana" ? result.publicKey : result.address)}
                           className="btn-copy"
                         >
                           Copy
