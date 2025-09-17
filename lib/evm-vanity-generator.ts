@@ -75,7 +75,14 @@ export class EVMVanityAddressGenerator {
       const address = wallet.address;
 
       // Check if address matches criteria
-      if (this.matchesCriteria(address, { startsWith, endsWith, contains, caseSensitive })) {
+      if (
+        this.matchesCriteria(address, {
+          startsWith,
+          endsWith,
+          contains,
+          caseSensitive,
+        })
+      ) {
         const timeElapsed = Date.now() - startTime;
         return {
           address,

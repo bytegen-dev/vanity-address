@@ -158,7 +158,11 @@ export default function Home() {
   return (
     <div className="gradient-bg">
       <Aurora
-        colorStops={addressType === "evm" ? ["#ff4444", "#ff6b6b", "#ff4444"] : ["#5227FF", "#7cff67", "#5227FF"]}
+        colorStops={
+          addressType === "evm"
+            ? ["#ff4444", "#ff6b6b", "#ff4444"]
+            : ["#5227FF", "#7cff67", "#5227FF"]
+        }
         amplitude={1.0}
         blend={0.5}
         processing={isGenerating}
@@ -233,20 +237,33 @@ export default function Home() {
                 : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed. Note: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
             </p>
             {addressType === "evm" && (
-              <div className="mt-3" style={{
-                padding: "12px",
-                backgroundColor: "rgba(255, 165, 0, 0.1)",
-                border: "1px solid rgba(255, 165, 0, 0.3)",
-                borderRadius: "8px",
-                fontSize: "14px"
-              }}>
-                <div style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}>
-                  <span style={{ marginRight: "8px", fontSize: "16px" }}>⚠️</span>
-                  <strong style={{ color: "#ffa500" }}>Experimental Mode</strong>
+              <div
+                className="mt-3"
+                style={{
+                  padding: "12px",
+                  backgroundColor: "rgba(255, 165, 0, 0.1)",
+                  border: "1px solid rgba(255, 165, 0, 0.3)",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    marginBottom: "4px",
+                  }}
+                >
+                  <span style={{ marginRight: "8px", fontSize: "16px" }}>
+                    ⚠️
+                  </span>
+                  <strong style={{ color: "#ffa500" }}>
+                    Experimental Mode
+                  </strong>
                 </div>
                 <p style={{ color: "#ffa500", margin: "0", fontSize: "13px" }}>
-                  EVM generation is currently experimental and may be slower than expected. 
-                  We're working on performance optimizations.
+                  EVM generation is currently experimental and may be slower
+                  than expected. We're working on performance optimizations.
                 </p>
               </div>
             )}
@@ -444,8 +461,12 @@ export default function Home() {
                 Estimated time: {generator.formatTimeDuration(estimateTime())}
               </p>
               {addressType === "evm" && (
-                <p className="text-orange-400" style={{ fontSize: "13px", marginTop: "8px" }}>
-                  ⚠️ Actual EVM generation time may be longer due to experimental optimizations
+                <p
+                  className="text-orange-400"
+                  style={{ fontSize: "13px", marginTop: "8px" }}
+                >
+                  ⚠️ Actual EVM generation time may be longer due to
+                  experimental optimizations
                 </p>
               )}
             </div>
