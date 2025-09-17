@@ -699,29 +699,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={
-      <div className="gradient-bg">
-        <Aurora
-          colorStops={["#5227FF", "#7cff67", "#5227FF"]}
-          amplitude={1.0}
-          blend={0.5}
-          processing={true}
-        />
-        <div className="container">
-          <div className="text-center mb-8">
-            <h1
-              className="text-white mb-4"
-              style={{ fontSize: "2.5rem", fontWeight: "bold" }}
-            >
-              Vanity Address Generator
-            </h1>
-            <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
-              Loading...
-            </p>
-          </div>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<div>Loading...</div>}>
       <HomeContent />
     </Suspense>
   );
