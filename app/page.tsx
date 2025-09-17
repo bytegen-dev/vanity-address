@@ -62,7 +62,7 @@ export default function Home() {
   }, [isGenerating]);
 
   const handleGenerate = useCallback(async () => {
-    if (isGenerating) return;
+    if (isGenerating || !addressType) return;
 
     setIsGenerating(true);
     setCurrentAttempts(0);
@@ -70,7 +70,7 @@ export default function Home() {
 
     try {
       const result = await generator.generateVanityAddress({
-        addressType,
+        addressType: addressType as AddressType,
         ...options,
         onProgress: (attempts) => {
           setCurrentAttempts(attempts);
@@ -102,7 +102,26 @@ export default function Home() {
       setIsGenerating(false);
       setCurrentAttempts(0);
     }
-  }, [addressType, options, isGenerating]);
+  }, [addressType as AddressType, options, isGenerating]);
+
+  const blinkAurora = useCallback(() => {
+    const aurora = document.querySelector(".aurora-container") as HTMLElement;
+    if (aurora) {
+      aurora.style.transition = "opacity 0s ease";
+      aurora.style.opacity = "0";
+      setTimeout(() => {
+        aurora.style.transition = "opacity 0.3s ease-in-out";
+        aurora.style.opacity = "1";
+      }, 1000);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isGenerating) {
+      return;
+    }
+    blinkAurora();
+  }, [addressType, isGenerating]);
 
   const handleStop = useCallback(() => {
     generator.stop();
@@ -130,7 +149,7 @@ export default function Home() {
 
   const estimateAttempts = () => {
     return generator.estimateExpectedAttempts({
-      addressType,
+      addressType: addressType as AddressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -140,7 +159,7 @@ export default function Home() {
 
   const estimateTime = () => {
     return generator.estimateExpectedTime({
-      addressType,
+      addressType: addressType as AddressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -150,7 +169,7 @@ export default function Home() {
 
   const estimateProbability = () => {
     return generator.estimateProbability({
-      addressType,
+      addressType: addressType as AddressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -160,7 +179,7 @@ export default function Home() {
 
   const validateCriteria = () => {
     return generator.validateCriteria({
-      addressType,
+      addressType: addressType as AddressType,
       startsWith: options.startsWith,
       endsWith: options.endsWith,
       contains: options.contains,
@@ -199,79 +218,85 @@ export default function Home() {
             className="text-white mb-4"
             style={{ fontSize: "2.5rem", fontWeight: "bold" }}
           >
-            {addressType === null 
-              ? "Vanity Address Generator" 
-              : `${addressType === "solana" ? "Solana" : "EVM"} Vanity Address Generator`
-            }
+            {addressType === null
+              ? "HI_"
+              : `${
+                  addressType === "solana" ? "Solana" : "EVM"
+                } Vanity Address Generator`}
           </h1>
           <p className="text-white-80" style={{ fontSize: "1.125rem" }}>
-            {addressType === null 
+            {addressType === null
               ? "Generate custom addresses with specific patterns"
-              : `Generate custom ${addressType === "solana" ? "Solana" : "EVM"} addresses with specific patterns`
-            }
+              : `Generate custom ${
+                  addressType === "solana" ? "Solana" : "EVM"
+                } addresses with specific patterns`}
           </p>
         </div>
 
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           {/* Address Type Selector */}
           <div className="card mb-6">
-            <h2
-              className="text-white mb-4"
-              style={{ fontSize: "1.5rem", fontWeight: "600" }}
-            >
-              Address Type
-            </h2>
             {addressType === null ? (
-              <div className="flex items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-8">
                 <div className="loading-spinner"></div>
-                <span className="text-white-80 ml-3">Loading...</span>
               </div>
             ) : (
-              <div className="flex gap-4">
-              <label className="flex items-center text-white cursor-pointer">
-                <input
-                  type="radio"
-                  name="addressType"
-                  value="solana"
-                  checked={addressType === "solana"}
-                  onChange={(e) =>
-                    handleAddressTypeChange(e.target.value as AddressType)
-                  }
-                  disabled={isGenerating}
-                  style={{
-                    marginRight: "8px",
-                    width: "16px",
-                    height: "16px",
-                    accentColor: "#fff",
-                  }}
-                />
-                <span style={{ fontSize: "16px" }}>Solana (Base58)</span>
-              </label>
-              <label className="flex items-center text-white cursor-pointer">
-                <input
-                  type="radio"
-                  name="addressType"
-                  value="evm"
-                  checked={addressType === "evm"}
-                  onChange={(e) =>
-                    handleAddressTypeChange(e.target.value as AddressType)
-                  }
-                  disabled={isGenerating}
-                  style={{
-                    marginRight: "8px",
-                    width: "16px",
-                    height: "16px",
-                    accentColor: "#fff",
-                  }}
-                />
-                <span style={{ fontSize: "16px" }}>EVM (Hex)</span>
-              </label>
-            </div>
-            <p className="text-white-80 mt-2" style={{ fontSize: "14px" }}>
-              {addressType === "solana"
-                ? "Uses Base58 encoding. Cannot contain: 0, O, I, l"
-                : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed. Note: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
-            </p>
+              <>
+                <h2
+                  className="text-white mb-4"
+                  style={{ fontSize: "1.5rem", fontWeight: "600" }}
+                >
+                  Address Type
+                </h2>
+                <div className="flex gap-4">
+                  <label className="flex items-center text-white cursor-pointer">
+                    <input
+                      type="radio"
+                      name="addressType"
+                      value="solana"
+                      checked={addressType === "solana"}
+                      onChange={(e) =>
+                        handleAddressTypeChange(e.target.value as AddressType)
+                      }
+                      disabled={isGenerating}
+                      style={{
+                        marginRight: "8px",
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#fff",
+                      }}
+                    />
+                    <span style={{ fontSize: "16px" }}>Solana (Base58)</span>
+                  </label>
+                  <label className="flex items-center text-white cursor-pointer">
+                    <input
+                      type="radio"
+                      name="addressType"
+                      value="evm"
+                      checked={addressType === "evm"}
+                      onChange={(e) =>
+                        handleAddressTypeChange(e.target.value as AddressType)
+                      }
+                      disabled={isGenerating}
+                      style={{
+                        marginRight: "8px",
+                        width: "16px",
+                        height: "16px",
+                        accentColor: "#fff",
+                      }}
+                    />
+                    <span style={{ fontSize: "16px" }}>EVM (Hex)</span>
+                  </label>
+                </div>
+              </>
+            )}
+            {addressType !== null && (
+              <p className="text-white-80 mt-2" style={{ fontSize: "14px" }}>
+                {addressType === "solana"
+                  ? "Uses Base58 encoding. Cannot contain: 0, O, I, l"
+                  : "Uses hexadecimal encoding. Only 0-9, a-f, A-F allowed. Note: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
+              </p>
+            )}
             {addressType === "evm" && (
               <div
                 className="mt-3"
@@ -303,234 +328,251 @@ export default function Home() {
                 </p>
               </div>
             )}
-            )}
           </div>
 
           {/* Input Form */}
           {addressType !== null && (
-          <div className="card">
-            <h2
-              className="text-white mb-6"
-              style={{ fontSize: "1.5rem", fontWeight: "600" }}
-            >
-              Generation Criteria
-            </h2>
+            <div className="card">
+              <h2
+                className="text-white mb-6"
+                style={{ fontSize: "1.5rem", fontWeight: "600" }}
+              >
+                Generation Criteria
+              </h2>
 
-            <div className="grid grid-cols-2 mb-6">
-              <div>
+              <div className="grid grid-cols-2 mb-6">
+                <div>
+                  <label
+                    className="text-white mb-2"
+                    style={{ display: "block" }}
+                  >
+                    Starts With
+                  </label>
+                  <input
+                    type="text"
+                    value={options.startsWith}
+                    onChange={(e) =>
+                      setOptions({ ...options, startsWith: e.target.value })
+                    }
+                    placeholder={
+                      addressType === "solana"
+                        ? "e.g., ABC (recommended 2-3 chars)"
+                        : "e.g., 123 (will find 0x123...)"
+                    }
+                    disabled={isGenerating}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-white mb-2"
+                    style={{ display: "block" }}
+                  >
+                    Ends With
+                  </label>
+                  <input
+                    type="text"
+                    value={options.endsWith}
+                    onChange={(e) =>
+                      setOptions({ ...options, endsWith: e.target.value })
+                    }
+                    placeholder={
+                      addressType === "solana"
+                        ? "e.g., XYZ (recommended 2-3 chars)"
+                        : "e.g., 456 (will find ...456)"
+                    }
+                    disabled={isGenerating}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-6">
                 <label className="text-white mb-2" style={{ display: "block" }}>
-                  Starts With
+                  Contains
                 </label>
                 <input
                   type="text"
-                  value={options.startsWith}
+                  value={options.contains}
                   onChange={(e) =>
-                    setOptions({ ...options, startsWith: e.target.value })
+                    setOptions({ ...options, contains: e.target.value })
                   }
                   placeholder={
                     addressType === "solana"
-                      ? "e.g., ABC (recommended 2-3 chars)"
-                      : "e.g., 123 (will find 0x123...)"
+                      ? "e.g., SOL (recommended 2-3 chars)"
+                      : "e.g., 789 (will find ...789...)"
                   }
                   disabled={isGenerating}
                 />
               </div>
 
-              <div>
-                <label className="text-white mb-2" style={{ display: "block" }}>
-                  Ends With
+              <div className="grid grid-cols-2 mb-6">
+                <div>
+                  <label
+                    className="text-white mb-2"
+                    style={{ display: "block" }}
+                  >
+                    Max Attempts
+                  </label>
+                  <input
+                    type="number"
+                    value={options.maxAttempts}
+                    onChange={(e) =>
+                      setOptions({
+                        ...options,
+                        maxAttempts: parseInt(e.target.value) || 1000000,
+                      })
+                    }
+                    disabled={isGenerating}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    className="text-white mb-2"
+                    style={{ display: "block" }}
+                  >
+                    Max Time (seconds)
+                  </label>
+                  <input
+                    type="number"
+                    value={(options.maxTime || 30000) / 1000}
+                    onChange={(e) =>
+                      setOptions({
+                        ...options,
+                        maxTime: (parseInt(e.target.value) || 30) * 1000,
+                      })
+                    }
+                    disabled={isGenerating}
+                  />
+                </div>
+              </div>
+
+              {/* Case Sensitivity Option */}
+              <div className="mb-6">
+                <label className="flex items-center text-white cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={options.caseSensitive}
+                    onChange={(e) =>
+                      setOptions({
+                        ...options,
+                        caseSensitive: e.target.checked,
+                      })
+                    }
+                    disabled={isGenerating}
+                    style={{
+                      marginRight: "8px",
+                      width: "16px",
+                      height: "16px",
+                      accentColor: "#fff",
+                    }}
+                  />
+                  <span style={{ fontSize: "14px" }}>
+                    Case sensitive matching (unchecked = case insensitive)
+                  </span>
                 </label>
-                <input
-                  type="text"
-                  value={options.endsWith}
-                  onChange={(e) =>
-                    setOptions({ ...options, endsWith: e.target.value })
-                  }
-                  placeholder={
-                    addressType === "solana"
-                      ? "e.g., XYZ (recommended 2-3 chars)"
-                      : "e.g., 456 (will find ...456)"
-                  }
-                  disabled={isGenerating}
-                />
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <label className="text-white mb-2" style={{ display: "block" }}>
-                Contains
-              </label>
-              <input
-                type="text"
-                value={options.contains}
-                onChange={(e) =>
-                  setOptions({ ...options, contains: e.target.value })
-                }
-                placeholder={
-                  addressType === "solana"
-                    ? "e.g., SOL (recommended 2-3 chars)"
-                    : "e.g., 789 (will find ...789...)"
-                }
-                disabled={isGenerating}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 mb-6">
-              <div>
-                <label className="text-white mb-2" style={{ display: "block" }}>
-                  Max Attempts
-                </label>
-                <input
-                  type="number"
-                  value={options.maxAttempts}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      maxAttempts: parseInt(e.target.value) || 1000000,
-                    })
-                  }
-                  disabled={isGenerating}
-                />
               </div>
 
-              <div>
-                <label className="text-white mb-2" style={{ display: "block" }}>
-                  Max Time (seconds)
-                </label>
-                <input
-                  type="number"
-                  value={(options.maxTime || 30000) / 1000}
-                  onChange={(e) =>
-                    setOptions({
-                      ...options,
-                      maxTime: (parseInt(e.target.value) || 30) * 1000,
-                    })
-                  }
-                  disabled={isGenerating}
-                />
-              </div>
-            </div>
-
-            {/* Case Sensitivity Option */}
-            <div className="mb-6">
-              <label className="flex items-center text-white cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={options.caseSensitive}
-                  onChange={(e) =>
-                    setOptions({ ...options, caseSensitive: e.target.checked })
-                  }
-                  disabled={isGenerating}
+              {/* Validation Messages */}
+              {validateCriteria().length > 0 && (
+                <div
+                  className="mb-6"
                   style={{
-                    marginRight: "8px",
-                    width: "16px",
-                    height: "16px",
-                    accentColor: "#fff",
+                    padding: "16px",
+                    backgroundColor: "rgba(255, 0, 0, 0.1)",
+                    border: "1px solid rgba(255, 0, 0, 0.3)",
+                    borderRadius: "8px",
                   }}
-                />
-                <span style={{ fontSize: "14px" }}>
-                  Case sensitive matching (unchecked = case insensitive)
-                </span>
-              </label>
-            </div>
+                >
+                  <h3
+                    className="text-white mb-2"
+                    style={{ fontWeight: "600", color: "#ff6b6b" }}
+                  >
+                    ⚠️ Invalid Characters
+                  </h3>
+                  {validateCriteria().map((issue, index) => (
+                    <p
+                      key={index}
+                      style={{
+                        color: "#ff6b6b",
+                        fontSize: "14px",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {issue}
+                    </p>
+                  ))}
+                  <p
+                    style={{
+                      color: "#ff6b6b",
+                      fontSize: "12px",
+                      marginTop: "8px",
+                    }}
+                  >
+                    {addressType === "solana"
+                      ? "Solana addresses use Base58 encoding which excludes: 0, O, I, l"
+                      : "EVM addresses use hexadecimal encoding: 0-9, a-f, A-F. Remember: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
+                  </p>
+                </div>
+              )}
 
-            {/* Validation Messages */}
-            {validateCriteria().length > 0 && (
+              {/* Probability Estimate */}
               <div
                 className="mb-6"
                 style={{
                   padding: "16px",
-                  backgroundColor: "rgba(255, 0, 0, 0.1)",
-                  border: "1px solid rgba(255, 0, 0, 0.3)",
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
                   borderRadius: "8px",
                 }}
               >
-                <h3
-                  className="text-white mb-2"
-                  style={{ fontWeight: "600", color: "#ff6b6b" }}
-                >
-                  ⚠️ Invalid Characters
+                <h3 className="text-white mb-2" style={{ fontWeight: "600" }}>
+                  Difficulty Estimate
                 </h3>
-                {validateCriteria().map((issue, index) => (
+                <p className="text-white-80">
+                  Expected attempts: {estimateAttempts().toLocaleString()}
+                </p>
+                <p className="text-white-80">
+                  Probability: {(estimateProbability() * 100).toFixed(6)}%
+                </p>
+                <p className="text-white-80">
+                  Estimated time: {generator.formatTimeDuration(estimateTime())}
+                </p>
+                {addressType === "evm" && (
                   <p
-                    key={index}
+                    className="text-orange-400"
+                    style={{ fontSize: "13px", marginTop: "8px" }}
+                  >
+                    ⚠️ Actual EVM generation time may be longer due to
+                    experimental optimizations
+                  </p>
+                )}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex">
+                {!isGenerating ? (
+                  <button
+                    onClick={handleGenerate}
+                    className="btn-primary"
+                    disabled={validateCriteria().length > 0}
                     style={{
-                      color: "#ff6b6b",
-                      fontSize: "14px",
-                      marginBottom: "4px",
+                      opacity: validateCriteria().length > 0 ? 0.4 : 1,
+                      cursor:
+                        validateCriteria().length > 0
+                          ? "not-allowed"
+                          : "pointer",
                     }}
                   >
-                    {issue}
-                  </p>
-                ))}
-                <p
-                  style={{
-                    color: "#ff6b6b",
-                    fontSize: "12px",
-                    marginTop: "8px",
-                  }}
-                >
-                  {addressType === "solana"
-                    ? "Solana addresses use Base58 encoding which excludes: 0, O, I, l"
-                    : "EVM addresses use hexadecimal encoding: 0-9, a-f, A-F. Remember: All EVM addresses start with '0x' - your pattern will be searched after this prefix."}
-                </p>
+                    Generate Vanity Address
+                  </button>
+                ) : (
+                  <button onClick={handleStop} className="btn-danger">
+                    Stop Generation
+                  </button>
+                )}
               </div>
-            )}
-
-            {/* Probability Estimate */}
-            <div
-              className="mb-6"
-              style={{
-                padding: "16px",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "8px",
-              }}
-            >
-              <h3 className="text-white mb-2" style={{ fontWeight: "600" }}>
-                Difficulty Estimate
-              </h3>
-              <p className="text-white-80">
-                Expected attempts: {estimateAttempts().toLocaleString()}
-              </p>
-              <p className="text-white-80">
-                Probability: {(estimateProbability() * 100).toFixed(6)}%
-              </p>
-              <p className="text-white-80">
-                Estimated time: {generator.formatTimeDuration(estimateTime())}
-              </p>
-              {addressType === "evm" && (
-                <p
-                  className="text-orange-400"
-                  style={{ fontSize: "13px", marginTop: "8px" }}
-                >
-                  ⚠️ Actual EVM generation time may be longer due to
-                  experimental optimizations
-                </p>
-              )}
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex">
-              {!isGenerating ? (
-                <button
-                  onClick={handleGenerate}
-                  className="btn-primary"
-                  disabled={validateCriteria().length > 0}
-                  style={{
-                    opacity: validateCriteria().length > 0 ? 0.4 : 1,
-                    cursor:
-                      validateCriteria().length > 0 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  Generate Vanity Address
-                </button>
-              ) : (
-                <button onClick={handleStop} className="btn-danger">
-                  Stop Generation
-                </button>
-              )}
-            </div>
-          </div>
+          )}
 
           {/* Results */}
           {results.length > 0 && (
@@ -648,7 +690,6 @@ export default function Home() {
                 </p>
               </div>
             </div>
-          )}
           )}
         </div>
       </div>
