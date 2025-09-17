@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   UnifiedVanityAddressGenerator,
   UnifiedVanityResult,
@@ -11,6 +12,9 @@ import { toast } from "react-toastify";
 import Aurora from "./Aurora";
 
 export default function Home() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [results, setResults] = useState<UnifiedVanityResult[]>([]);
   const [currentAttempts, setCurrentAttempts] = useState(0);
@@ -28,6 +32,14 @@ export default function Home() {
   });
 
   const generator = new UnifiedVanityAddressGenerator();
+
+  // Initialize address type from URL parameter
+  useEffect(() => {
+    const mode = searchParams.get('mode');
+    if (mode === 'evm' || mode === 'solana') {
+      setAddressType(mode as AddressType);
+    }
+  }, [searchParams]);
 
   // Timer effect for tracking elapsed time
   useEffect(() => {
@@ -93,6 +105,14 @@ export default function Home() {
     generator.stop();
     setIsGenerating(false);
   }, []);
+
+  const handleAddressTypeChange = useCallback((newAddressType: AddressType) => {
+    setAddressType(newAddressType);
+    // Update URL parameter
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('mode', newAddressType);
+    router.push(`?${params.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -199,7 +219,7 @@ export default function Home() {
                   value="solana"
                   checked={addressType === "solana"}
                   onChange={(e) =>
-                    setAddressType(e.target.value as AddressType)
+                    handleAddressTypeChange(e.target.value as AddressType)
                   }
                   disabled={isGenerating}
                   style={{
@@ -218,7 +238,7 @@ export default function Home() {
                   value="evm"
                   checked={addressType === "evm"}
                   onChange={(e) =>
-                    setAddressType(e.target.value as AddressType)
+                    handleAddressTypeChange(e.target.value as AddressType)
                   }
                   disabled={isGenerating}
                   style={{
