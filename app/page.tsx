@@ -699,7 +699,7 @@ function HomeContent() {
 
 export default function Home() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="blinking-text">_</div>}>
       <HomeContent />
     </Suspense>
   );
