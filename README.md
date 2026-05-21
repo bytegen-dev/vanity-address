@@ -35,13 +35,13 @@ cd vanity-address-generator
 2. Install dependencies:
 
 ```bash
-npm install
+pnpm install
 ```
 
 3. Run the development server:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) in your browser.
@@ -101,8 +101,8 @@ private matchesCustomPattern(publicKey: string): boolean {
 ### Manual Deployment
 
 ```bash
-npm run build
-npm start
+pnpm build
+pnpm start
 ```
 
 ## 🔒 Security

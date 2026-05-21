@@ -1,6 +1,7 @@
 {
   "name": "solana-vanity-address-generator",
   "version": "1.0.0",
+  "packageManager": "pnpm@10.11.0",
   "description": "Solana vanity address generator with Next.js frontend",
   "scripts": {
     "dev": "next dev",

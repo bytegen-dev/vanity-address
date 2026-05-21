@@ -1,23 +1,25 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Syne } from "next/font/google";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 
-const jetbrainsMono = JetBrains_Mono({
+const syne = Syne({
   subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-jetbrains-mono",
+  weight: ["600", "700", "800"],
+  variable: "--font-display",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
-  title: "Vanity Addy - Solana Vanity Address Generator",
-  description: "Generate custom Solana addresses with specific patterns",
-  icons: {
-    icon: "/logo.png",
-    shortcut: "/logo.png",
-    apple: "/logo.png",
-  },
+  title: "Vanity Forge — Solana & EVM Address Generator",
+  description:
+    "Generate custom Solana and EVM wallet addresses with your chosen prefix, suffix, or substring. Runs entirely in your browser.",
 };
 
 export default function RootLayout({
@@ -26,20 +28,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={jetbrainsMono.className}>
+    <html lang="en" className={`${syne.variable} ${plexMono.variable}`}>
+      <body>
         {children}
         <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
+          position="bottom-right"
+          autoClose={3200}
+          hideProgressBar
+          newestOnTop
           closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
           pauseOnHover
           theme="dark"
+          toastClassName="vanity-toast"
         />
       </body>
     </html>

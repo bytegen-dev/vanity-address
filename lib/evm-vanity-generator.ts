@@ -1,4 +1,10 @@
-import { ethers } from "ethers";
+import { Wallet } from "ethers";
+import {
+  compilePattern,
+  hasActivePattern,
+  matchesPattern,
+} from "./pattern-matcher";
+import { EvmWorkerResult, VanityWorkerSession } from "./vanity-worker-client";
 
 export interface EVMVanityResult {
   address: string;
@@ -13,16 +19,21 @@ export interface EVMVanityOptions {
   endsWith?: string;
   contains?: string;
   maxAttempts?: number;
-  maxTime?: number; // in milliseconds
-  caseSensitive?: boolean; // Whether to use case sensitive matching
-  onProgress?: (attempts: number) => void; // Callback for progress updates
+  maxTime?: number;
+  caseSensitive?: boolean;
+  onProgress?: (attempts: number) => void;
 }
 
+const MAIN_THREAD_BATCH = 2000;
+const MAIN_THREAD_PROGRESS = 2000;
+
 export class EVMVanityAddressGenerator {
+  private workerSession = new VanityWorkerSession<EvmWorkerResult>();
   private shouldStop = false;
 
-  stop() {
+  stop(): void {
     this.shouldStop = true;
+    this.workerSession.stop();
   }
 
   async generateVanityAddress(
@@ -32,20 +43,18 @@ export class EVMVanityAddressGenerator {
       startsWith = "",
       endsWith = "",
       contains = "",
-      maxAttempts = 10000000, // 10 million attempts default
-      maxTime = 300000, // 5 minutes default (300 seconds)
-      caseSensitive = false, // Default to case insensitive for better UX
+      maxAttempts = 10_000_000,
+      maxTime = 300_000,
+      caseSensitive = false,
       onProgress,
     } = options;
 
     this.shouldStop = false;
 
-    // Validate criteria
     if (!startsWith && !endsWith && !contains) {
       throw new Error("At least one criteria must be specified");
     }
 
-    // Validate hex characters for EVM addresses
     const hexPattern = /^[0-9a-fA-F]*$/;
     if (startsWith && !hexPattern.test(startsWith)) {
       throw new Error(
@@ -63,104 +72,86 @@ export class EVMVanityAddressGenerator {
       );
     }
 
+    try {
+      const workerResult = await this.workerSession.run("evm", {
+        startsWith,
+        endsWith,
+        contains,
+        caseSensitive,
+        maxAttempts,
+        maxTime,
+        onProgress,
+      });
+
+      if (workerResult) {
+        return workerResult;
+      }
+    } catch {
+      // Fall back to main-thread generation if workers are unavailable.
+    }
+
+    return this.generateOnMainThread({
+      startsWith,
+      endsWith,
+      contains,
+      maxAttempts,
+      maxTime,
+      caseSensitive,
+      onProgress,
+    });
+  }
+
+  private async generateOnMainThread(
+    options: Required<
+      Pick<
+        EVMVanityOptions,
+        | "startsWith"
+        | "endsWith"
+        | "contains"
+        | "maxAttempts"
+        | "maxTime"
+        | "caseSensitive"
+      >
+    > & { onProgress?: (attempts: number) => void }
+  ): Promise<EVMVanityResult | null> {
+    const pattern = compilePattern(options);
+    if (!hasActivePattern(pattern)) {
+      return null;
+    }
+
+    this.shouldStop = false;
     const startTime = Date.now();
     let attempts = 0;
+    let lastProgress = 0;
 
-    while (attempts < maxAttempts && !this.shouldStop) {
-      // Generate single wallet and check
-      attempts++;
+    while (attempts < options.maxAttempts && !this.shouldStop) {
+      for (let i = 0; i < MAIN_THREAD_BATCH && !this.shouldStop; i++) {
+        attempts++;
+        const wallet = Wallet.createRandom();
 
-      // Generate random wallet
-      const wallet = ethers.Wallet.createRandom();
-      const address = wallet.address;
-
-      // Check if address matches criteria
-      if (
-        this.matchesCriteria(address, {
-          startsWith,
-          endsWith,
-          contains,
-          caseSensitive,
-        })
-      ) {
-        const timeElapsed = Date.now() - startTime;
-        return {
-          address,
-          privateKey: wallet.privateKey,
-          publicKey: wallet.publicKey,
-          attempts,
-          timeElapsed,
-        };
+        if (matchesPattern(wallet.address, pattern, true)) {
+          return {
+            address: wallet.address,
+            privateKey: wallet.privateKey,
+            publicKey: wallet.publicKey,
+            attempts,
+            timeElapsed: Date.now() - startTime,
+          };
+        }
       }
 
-      // Check timeout
-      if (Date.now() - startTime > maxTime) {
+      if (Date.now() - startTime > options.maxTime) {
         break;
       }
 
-      // Progress callback and yield control after every attempt
-      if (attempts % 5 === 0) {
-        if (onProgress) {
-          onProgress(attempts);
-        }
-        // Yield control to prevent UI blocking
-        await new Promise((resolve) => setTimeout(resolve, 1));
+      if (attempts - lastProgress >= MAIN_THREAD_PROGRESS) {
+        lastProgress = attempts;
+        options.onProgress?.(attempts);
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     }
 
     return null;
-  }
-
-  private matchesCriteria(
-    address: string,
-    criteria: {
-      startsWith?: string;
-      endsWith?: string;
-      contains?: string;
-      caseSensitive?: boolean;
-    }
-  ): boolean {
-    const { startsWith, endsWith, contains, caseSensitive = false } = criteria;
-
-    // For EVM addresses, remove the "0x" prefix for pattern matching
-    const addressWithoutPrefix = address.startsWith("0x")
-      ? address.slice(2)
-      : address;
-
-    if (caseSensitive) {
-      // Case sensitive matching
-      if (startsWith && !addressWithoutPrefix.startsWith(startsWith)) {
-        return false;
-      }
-      if (endsWith && !addressWithoutPrefix.endsWith(endsWith)) {
-        return false;
-      }
-      if (contains && !addressWithoutPrefix.includes(contains)) {
-        return false;
-      }
-    } else {
-      // Case insensitive matching (default)
-      if (
-        startsWith &&
-        !addressWithoutPrefix.toLowerCase().startsWith(startsWith.toLowerCase())
-      ) {
-        return false;
-      }
-      if (
-        endsWith &&
-        !addressWithoutPrefix.toLowerCase().endsWith(endsWith.toLowerCase())
-      ) {
-        return false;
-      }
-      if (
-        contains &&
-        !addressWithoutPrefix.toLowerCase().includes(contains.toLowerCase())
-      ) {
-        return false;
-      }
-    }
-
-    return true;
   }
 
   estimateProbability(criteria: {
@@ -171,12 +162,11 @@ export class EVMVanityAddressGenerator {
   }): number {
     const { startsWith, endsWith, contains, caseSensitive = false } = criteria;
     let probability = 1;
-    const alphabetSize = 16; // Hex characters: 0-9, a-f
+    const alphabetSize = 16;
 
     if (startsWith) {
       probability *= Math.pow(1 / alphabetSize, startsWith.length);
       if (!caseSensitive) {
-        // For case insensitive, we have 2 options per character (lowercase/uppercase)
         const caseVariations = Math.pow(2, startsWith.length);
         probability *= Math.min(caseVariations, alphabetSize);
       }
@@ -191,9 +181,7 @@ export class EVMVanityAddressGenerator {
     }
 
     if (contains) {
-      // For contains, we need to consider all possible positions
-      // This is a simplified calculation - in reality it's more complex
-      const addressLength = 40; // EVM addresses are 40 hex characters (excluding 0x)
+      const addressLength = 40;
       const possiblePositions = addressLength - contains.length + 1;
       probability *=
         Math.pow(1 / alphabetSize, contains.length) * possiblePositions;
@@ -224,7 +212,8 @@ export class EVMVanityAddressGenerator {
   }): number {
     const expectedAttempts = this.estimateExpectedAttempts(criteria);
     if (expectedAttempts === Infinity) return Infinity;
-    const attemptsPerSecond = 2000; // More realistic estimate for Ethereum
+
+    const attemptsPerSecond = 12_000;
     return (expectedAttempts / attemptsPerSecond) * 1000;
   }
 
@@ -238,12 +227,13 @@ export class EVMVanityAddressGenerator {
 
     if (days > 0) {
       return `${days}d ${hours % 24}h ${minutes % 60}m`;
-    } else if (hours > 0) {
-      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
-    } else if (minutes > 0) {
-      return `${minutes}m ${seconds % 60}s`;
-    } else {
-      return `${seconds}s`;
     }
+    if (hours > 0) {
+      return `${hours}h ${minutes % 60}m ${seconds % 60}s`;
+    }
+    if (minutes > 0) {
+      return `${minutes}m ${seconds % 60}s`;
+    }
+    return `${seconds}s`;
   }
 }
