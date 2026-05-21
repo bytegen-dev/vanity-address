@@ -1,13 +1,19 @@
 "use client";
 
 import type { UnifiedVanityResult } from "../../lib/unified-vanity-generator";
+import { downloadWalletTxt } from "../../lib/wallet-export";
 
 interface ResultsPanelProps {
   results: UnifiedVanityResult[];
   onCopy: (text: string) => void;
+  onDownload?: () => void;
 }
 
-export default function ResultsPanel({ results, onCopy }: ResultsPanelProps) {
+export default function ResultsPanel({
+  results,
+  onCopy,
+  onDownload,
+}: ResultsPanelProps) {
   if (results.length === 0) return null;
 
   return (
@@ -67,6 +73,19 @@ export default function ResultsPanel({ results, onCopy }: ResultsPanelProps) {
                 <dd className="result-chain">{result.addressType}</dd>
               </div>
             </dl>
+
+            <div className="result-actions">
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={() => {
+                  downloadWalletTxt(result);
+                  onDownload?.();
+                }}
+              >
+                Download .txt
+              </button>
+            </div>
           </article>
         );
       })}

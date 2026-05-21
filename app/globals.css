@@ -359,6 +359,17 @@ body::before {
   transform: translateY(-2px);
 }
 
+.btn-sm {
+  padding: 10px 16px;
+  font-size: 0.8rem;
+}
+
+.result-actions {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
 .btn-danger {
   background: transparent;
   color: var(--danger);

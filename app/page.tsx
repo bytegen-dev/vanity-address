@@ -194,7 +194,11 @@ function HomeContent() {
                 />
               )}
 
-              <ResultsPanel results={results} onCopy={copyToClipboard} />
+              <ResultsPanel
+                results={results}
+                onCopy={copyToClipboard}
+                onDownload={() => toast.success("Wallet saved as .txt")}
+              />
             </>
           )}
         </div>
